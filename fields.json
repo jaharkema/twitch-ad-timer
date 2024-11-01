@@ -1,0 +1,90 @@
+{
+	"sbDebugMode": {
+		"group": "Streamer.bot",
+		"type": "dropdown",
+		"label": "Debug Mode",
+		"value": "On",
+		"options": {
+			"On": "On",
+			"Off": "Off"
+		}
+	},
+	"sbAdRun": {
+		"group": "Streamer.bot",
+		"type": "text",
+		"label": "Ad Run Action"
+	},
+	"sbAdMidRoll": {
+		"group": "Streamer.bot",
+		"type": "text",
+		"label": "Ad Mid Roll Action"
+	},
+	"barColor": {
+		"group": "Appearance",
+		"type": "colorpicker",
+		"label": "Bar Color",
+		"value": "#ffcc00"
+	},
+	"lineThickness": {
+		"group": "Appearance",
+		"type": "number",
+		"label": "Line Thickness",
+		"value": 3,
+		"min": 0,
+		"step": 1
+	},
+	"barPosition": {
+		"group": "Appearance",
+		"type": "dropdown",
+		"label": "Bar Position",
+		"value": "Bottom",
+		"options": {
+			"None": "None",
+			"Bottom": "Bottom",
+			"Top": "Top",
+			"Left": "Left",
+			"Right": "Right"
+		}
+	},
+	"timerPosition": {
+		"group": "Appearance",
+		"type": "dropdown",
+		"label": "Timer Position",
+		"value": "Top Left",
+		"options": {
+			"None": "None",
+			"Top Left": "Top Left",
+			"Top Right": "Top Right",
+			"Bottom Left": "Bottom Left",
+			"Bottom Right": "Bottom Right"
+		}
+	},
+	"showMidRollCountdown": {
+		"group": "Appearance",
+		"type": "dropdown",
+		"label": "Show Midroll Countdown",
+		"value": "Yes",
+		"options": {
+			"No": "No",
+			"Yes": "Yes"
+		}
+	},
+	"testDuration": {
+		"group": "Test",
+		"type": "number",
+		"label": "Duration (sec)",
+		"value": 15,
+		"min": 1,
+		"step": 1
+	},
+	"testButtonAdWidget": {
+		"group": "Test",
+		"type": "button",
+		"label": "Test Ad"
+	},
+	"testButtonAdMidRoll": {
+		"group": "Test",
+		"type": "button",
+		"label": "Test Ad Mid Roll"
+	}
+}
