@@ -8,7 +8,7 @@ let sbDebugMode = true;
 let sbAdRun;
 let sbAdMidRoll;
 let barColor = "#ffcc00";
-let lineThickness = 10;
+let lineThickness = 3;
 let barPosition = "Bottom";			// None, Bottom, Top, Left, Right
 let timerPosition = "Top Left";		// None, Top Left, Top Right, Bottom Left, Bottom Right
 let showMidRollCountdown = "Yes";	// No, Yes
