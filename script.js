@@ -1,300 +1,139 @@
-///////////////////////////
-// STREAMELEMENTS FIELDS //
-///////////////////////////
+///////////////
+// PARAMETRS //
+///////////////
 
-let sbServerAddress = "127.0.0.1";
-let sbServerPort = "8080";
-let sbDebugMode = true;
-let sbAdRun;
-let sbAdMidRoll;
-let barColor = "#ffcc00";
-let lineThickness = 3;
-let barPosition = "Bottom";			// None, Bottom, Top, Left, Right
-let timerPosition = "Top Left";		// None, Top Left, Top Right, Bottom Left, Bottom Right
-let showMidRollCountdown = "Yes";	// No, Yes
-let testDuration = 5;
+const queryString = window.location.search;
+const urlParams = new URLSearchParams(queryString);
+
+const visibilityDuration = urlParams.get("duration") || 0;
+const hideAlbumArt = urlParams.has("hideAlbumArt");
+
 
 /////////////////
 // GLOBAL VARS //
 /////////////////
 
-let ws;
-let singleAdLength = 30;
+let animationSpeed = 0.5;
 
 
 
-///////////////////////////////////
-// SRTEAMER.BOT WEBSOCKET SERVER //
-///////////////////////////////////
+//////////////////////
+// WEBSOCKET SERVER //
+//////////////////////
 
 // This is the main function that connects to the Streamer.bot websocket server
 function connectws() {
 	if ("WebSocket" in window) {
-		ws = new WebSocket("ws://" + sbServerAddress + ":" + sbServerPort + "/");
+		//const ws = new WebSocket("ws://" + sbServerAddress + ":" + sbServerPort + "/");
+		const CiderApp = io("http://localhost:10767/", {
+			transports: ['websocket']
+		});
 
-		// Reconnect
-		ws.onclose = function () {
+		CiderApp.on("disconnect", (event) => {
 			SetConnectionStatus(false);
 			setTimeout(connectws, 5000);
-		};
+		});
 
-		// Connect
-		ws.onopen = async function () {
+		CiderApp.on("connect", (event) => {
 			SetConnectionStatus(true);
+		});
 
-			console.log("Subscribe to events");
-			ws.send(
-				JSON.stringify({
-					request: "Subscribe",
-					id: "subscribe-events-id",
-					events: {
-						// This is the list of Streamer.bot websocket events to subscribe to
-						// See full list of events here:
-						// https://wiki.streamer.bot/en/Servers-Clients/WebSocket-Server/Requests
-						twitch: [
-							"AdRun",
-							"AdMidRoll"
-						]
-					}
-				})
-			);
+		// Set up websocket artwork/information handling
+		CiderApp.on("API:Playback", ({ data, type }) => {
+			switch (type) {
+				// Song changes
+				case ("playbackStatus.nowPlayingItemDidChange"):
+					UpdateSongInfo(data);
+					break;
 
-			ws.onmessage = function (event) {
-				// Grab message and parse JSON
-				const msg = event.data;
-				const wsdata = JSON.parse(msg);
+				// Progress bar moves
+				case ("playbackStatus.playbackTimeDidChange"):
+					UpdateProgressBar(data);
+					break;
 
-				if (typeof wsdata.event == "undefined") {
-					return;
-				}
-
-				// Print data to log for debugging purposes
-				if (sbDebugMode)
-				{
-					console.log(wsdata.data);
-					console.log(wsdata.event.type);
-				}
-
-				// Check for events to trigger
-				// See documentation for all events here:
-				// https://wiki.streamer.bot/en/Servers-Clients/WebSocket-Server/Events
-				switch (wsdata.event.source) {
-
-					// Twitch Events
-					case 'Twitch':
-						switch (wsdata.event.type) {
-							case ('AdRun'):
-								sbDoAction(ws, sbAdRun, wsdata.data);
-								AdRun(wsdata.data);
-								break;
-							case ('AdMidRoll'):
-								sbDoAction(ws, sbAdMidRoll, wsdata.data);
-								AdMidRoll(wsdata.data);
-								break;
-						}
-						break;
-
-				}
-			};
-		}
+				// Pause/unpause
+				case ("playbackStatus.playbackStateDidChange"):
+					UpdatePlaybackState(data);
+					break;
+			}
+		});
 	}
 }
 
 
 
-///////////////////////
-// TWITCH AD OVERLAY //
-///////////////////////
+////////////////////////
+// NOW PLAYING WIDGET //
+////////////////////////
 
-function AdRun(data) {
-	if (data.length_seconds <= 0)
-	{
-		TimerBarAnimation(singleAdLength);
-		HugeTittiesAnimation(singleAdLength);
-	}
-	else
-	{
-		TimerBarAnimation(data.length_seconds);
-		HugeTittiesAnimation(data.length_seconds);
-	}
-}
+function UpdateSongInfo(data) {
+	// Set the user's info
+	let albumArtUrl = data.artwork.url;
+	albumArtUrl = albumArtUrl.replace("{w}", data.artwork.width);
+	albumArtUrl = albumArtUrl.replace("{h}", data.artwork.height);
 
-function AdMidRoll(data) {
-	if (showMidRollCountdown != "Yes")
-		return;
+	UpdateAlbumArt(document.getElementById("albumArt"), albumArtUrl);
+	UpdateAlbumArt(document.getElementById("backgroundImage"), albumArtUrl);
 
-	//MidRollAnimation(data.length);
-	MidRollAnimation(5);
-}
+	setTimeout(() => {
+		UpdateTextLabel(document.getElementById("songLabel"), data.name);
+		UpdateTextLabel(document.getElementById("artistLabel"), data.artistName);
+	}, animationSpeed * 500);
 
-function TimerBarAnimation(adLength) {
-	let timerBar = document.getElementById("timerBar");
+	setTimeout(() => {
+		document.getElementById("albumArtBack").src = albumArtUrl;
+		document.getElementById("backgroundImageBack").src = albumArtUrl;
+	}, 2 * animationSpeed * 500);
 
-	// Set style
-	timerBar.style.background = barColor;
-	timerBar.style.position = "absolute";
-
-	switch (barPosition) {
-		case "None":
-			timerBar.style.display = "none";
-			break;
-		case "Bottom":
-			timerBar.style.height = lineThickness + "px";
-			timerBar.style.bottom = "0px";
-			timerBar.style.left = "0px";
-
-			// Start Animation
-			tl = new TimelineMax();
-			tl
-				.to(timerBar, 0.5, { width: window.innerWidth + "px", ease: Cubic.ease })
-				.to(timerBar, adLength, { width: "0px", ease: Linear.easeNone })
-			break;
-
-		case "Top":
-			timerBar.style.height = lineThickness + "px";
-			timerBar.style.top = "0px";
-			timerBar.style.left = "0px";
-
-			// Start Animation
-			tl = new TimelineMax();
-			tl
-				.to(timerBar, 0.5, { width: window.innerWidth + "px", ease: Cubic.ease })
-				.to(timerBar, adLength, { width: "0px", ease: Linear.easeNone })
-			break;
-
-		case "Left":
-			timerBar.style.width = lineThickness + "px";
-			timerBar.style.bottom = "0px";
-			timerBar.style.left = "0px";
-
-			// Start Animation
-			tl = new TimelineMax();
-			tl
-				.to(timerBar, 0.5, { height: window.innerHeight + "px", ease: Cubic.ease })
-				.to(timerBar, adLength, { height: "0px", ease: Linear.easeNone })
-			break;
-
-		case "Right":
-			timerBar.style.width = lineThickness + "px";
-			timerBar.style.bottom = "0px";
-			timerBar.style.right = "0px";
-
-			// Start Animation
-			tl = new TimelineMax();
-			tl
-				.to(timerBar, 0.5, { height: window.innerHeight + "px", ease: Cubic.ease })
-				.to(timerBar, adLength, { height: "0px", ease: Linear.easeNone })
-			break;
-	}
-}
-
-function HugeTittiesAnimation(adLength) {
-
-	let hugeTittiesContainer = document.getElementById("hugeTittiesContainer");
-
-	switch (timerPosition) {
-		case "None":
-			hugeTittiesContainer.style.display = "none";
-			break;
-		case "Top Left":
-			hugeTittiesContainer.style.top = "0px";
-			hugeTittiesContainer.style.left = "0px";
-			break;
-		case "Top Right":
-			hugeTittiesContainer.style.top = "0px";
-			hugeTittiesContainer.style.right = "0px";
-			break;
-		case "Bottom Left":
-			hugeTittiesContainer.style.bottom = "0px";
-			hugeTittiesContainer.style.left = "0px";
-			break;
-		case "Bottom Right":
-			hugeTittiesContainer.style.bottom = "0px";
-			hugeTittiesContainer.style.right = "0px";
-			break;
-	}
-
-	// Calculate starting time
-	let startingTime = adLength % singleAdLength;
-	if (startingTime == 0)
-		startingTime = singleAdLength;
-
-	// Estimate how many ads there should be
-	let adsTotal = Math.ceil(adLength / singleAdLength);
-	let adsRemaining = 1;
-
-	// Start the countdown timer
-	let adsRemainingContainer = document.getElementById("adsRemainingContainer");
-	let timerContainer = document.getElementById("timerContainer");
-
-	var timerThingy = setInterval(function () {
-		startingTime--;
-		if (startingTime == 0 && adsRemaining < adsTotal) {
-			adsRemaining++;
-			startingTime = singleAdLength;
-		}
-		if (startingTime == 0 && adsRemaining == adsTotal) {
-			clearInterval(timerThingy);
+	if (visibilityDuration > 0) {
+		setTimeout(() => {
 			SetVisibility(false);
-			return;
-		}
-		adsRemainingContainer.innerText = adsRemaining + " of " + adsTotal;
-		timerContainer.innerText = startingTime.toString().toHHMMSS();
-
-		// Show the widget
-		SetVisibility(true);
-	}, 1000)
-}
-
-function MidRollAnimation(countdownLength) {
-	let midRollContainer = document.getElementById("midRollContainer");
-	let midRollCountdownContainer = document.getElementById("midRollCountdownContainer");
-	let width = midRollContainer.getBoundingClientRect().width;
-	
-	// Set the starting position of the countdown box
-	midRollContainer.style.right = -width + "px";
-	midRollCountdownContainer.innerHTML = countdownLength;
-
-	// Slide the countdown box on screen
-	ShowMidRollCountdown(true);
-
-	// Start the countdown timer
-	let startingTime = countdownLength;
-
-	var timerThingy = setInterval(function () {
-		startingTime--;
-		midRollCountdownContainer.innerText = startingTime;
-		if (startingTime == 0) {
-			clearInterval(timerThingy);
-			ShowMidRollCountdown(false);
-			return;
-		}
-	}, 1000)
-}
-
-function SetVisibility(isVisible) {
-	let hugeTittiesContainer = document.getElementById("hugeTittiesContainer");
-
-	var tl = new TimelineMax();
-	tl
-		.to(hugeTittiesContainer, 0.5, { opacity: isVisible, ease: Linear.easeNone });
-}
-
-function ShowMidRollCountdown(isVisible) {
-	let midRollContainer = document.getElementById("midRollContainer");
-	let width = midRollContainer.getBoundingClientRect().width;
-
-	var tl = new TimelineMax();
-
-	if (isVisible)
-	{
-		tl
-			.to(midRollContainer, 0.5, { right: "-10px", ease: Power1.easeInOut })
+		}, visibilityDuration * 1000);
 	}
-	else
-	{
-		tl
-			.to(midRollContainer, 0.5, { right: -width + "px", ease: Power1.easeInOut })
+}
+
+function UpdateTextLabel(div, text) {
+	if (div.innerHTML != text) {
+		div.setAttribute("class", "text-fade");
+		setTimeout(() => {
+			div.innerHTML = text;
+			div.setAttribute("class", ".text-show");
+		}, animationSpeed * 250);
+	}
+}
+
+function UpdateAlbumArt(div, imgsrc) {
+	if (div.src != imgsrc) {
+		div.setAttribute("class", "text-fade");
+		setTimeout(() => {
+			div.src = imgsrc;
+			div.setAttribute("class", "text-show");
+		}, animationSpeed * 500);
+	}
+}
+
+function UpdateProgressBar(data) {
+	const progress = ((data.currentPlaybackTime / data.currentPlaybackDuration) * 100);
+	const progressTime = ConvertSecondsToMinutesSoThatItLooksBetterOnTheOverlay(data.currentPlaybackTime);
+	const duration = ConvertSecondsToMinutesSoThatItLooksBetterOnTheOverlay(data.currentPlaybackTimeRemaining);
+	document.getElementById("progressBar").style.width = `${progress}%`;
+	document.getElementById("progressTime").innerHTML = progressTime;
+	document.getElementById("duration").innerHTML = `-${duration}`;
+}
+
+function UpdatePlaybackState(data) {
+	console.log(data);
+	switch (data.state) {
+		case ("paused"):
+		case ("stopped"):
+			SetVisibility(false);
+			break;
+		case ("playing"):
+			UpdateSongInfo(data.attributes);
+			setTimeout(() => {
+				SetVisibility(true);
+			}, animationSpeed * 500);
+			break;
 	}
 }
 
@@ -304,36 +143,30 @@ function ShowMidRollCountdown(isVisible) {
 // HELPER FUNCTIONS //
 //////////////////////
 
-function sbDoAction(ws, actionName, data) {
-	let request = JSON.stringify({
-		request: "DoAction",
-		id: "subscribe-do-action-id",
-		action: {
-			name: actionName
-		},
-		args: {
-			data
-		}
-	});
+function ConvertSecondsToMinutesSoThatItLooksBetterOnTheOverlay(time) {
+	const minutes = Math.floor(time / 60);
+	const seconds = Math.trunc(time - minutes * 60);
 
-	ws.send(request);
+	return `${minutes}:${('0' + seconds).slice(-2)}`;
 }
 
-String.prototype.toHHMMSS = function () {
-	var sec_num = parseInt(this, 10); // don't forget the second param
-	var hours = Math.floor(sec_num / 3600);
-	var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
-	var seconds = sec_num - (hours * 3600) - (minutes * 60);
+function SetVisibility(isVisible) {
+	widgetVisibility = isVisible;
 
-	if (hours < 10) { hours = "0" + hours; }
-	//if (minutes < 10) {minutes = "0"+minutes;}
-	if (seconds < 10) { seconds = "0" + seconds; }
-	//return hours+':'+minutes+':'+seconds;
-	return minutes + ':' + seconds;
-}
+	const mainContainer = document.getElementById("mainContainer");
 
-function IsNullOrWhitespace(str) {
-	return /^\s*$/.test(str);
+	if (isVisible) {
+		var tl = new TimelineMax();
+		tl
+			.to(mainContainer, animationSpeed, { bottom: "50%", ease: Power1.easeInOut }, 'label')
+			.to(mainContainer, animationSpeed, { opacity: 1, ease: Power1.easeInOut }, 'label')
+	}
+	else {
+		var tl = new TimelineMax();
+		tl
+			.to(mainContainer, animationSpeed, { bottom: "45%", ease: Power1.easeInOut }, 'label')
+			.to(mainContainer, animationSpeed, { opacity: 0, ease: Power1.easeInOut }, 'label')
+	}
 }
 
 
@@ -342,6 +175,7 @@ function IsNullOrWhitespace(str) {
 // STREAMER.BOT WEBSOCKET STATUS //
 ///////////////////////////////////
 
+// This function sets the visibility of the Streamer.bot status label on the overlay
 function SetConnectionStatus(connected) {
 	let statusContainer = document.getElementById("statusContainer");
 	if (connected) {
@@ -349,57 +183,47 @@ function SetConnectionStatus(connected) {
 		statusContainer.innerText = "Connected!";
 		var tl = new TimelineMax();
 		tl
-			.to(statusContainer, 2, { opacity: 0, ease: Linear.easeNone })
-		//.call(removeElement, [div]);
+			.to(statusContainer, 2, { opacity: 0, ease: Linear.easeNone });
+		console.log("Connected to Cider!");
 	}
 	else {
-		statusContainer.style.background = "#D12025";
-		statusContainer.innerText = "Connecting...";
-		statusContainer.style.opacity = 1;
+		// statusContainer.style.background = "#D12025";
+		// statusContainer.innerText = "Connecting...";
+		// statusContainer.style.opacity = 1;
+		console.log("Not connected to Cider...");
 	}
 }
 
 
 
-///////////////////////////
-// STREAMELEMENTS EVENTS //
-///////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+// RESIZER THING BECAUSE I THINK I KNOW HOW RESPONSIVE DESIGN WORKS EVEN THOUGH I DON'T //
+//////////////////////////////////////////////////////////////////////////////////////////
 
-window.addEventListener('onWidgetLoad', function (obj) {
-	const fieldData = obj.detail.fieldData;
-	sbServerAddress = fieldData.sbServerAddress;
-	sbServerPort = fieldData.sbServerPort;
-	sbDebugMode = fieldData.sbDebugMode == "On" ? true : false;
-	sbAdRun = fieldData.sbAdRun;
-	sbAdMidRoll = fieldData.sbAdMidRoll;
-	barColor = fieldData.barColor;
-	lineThickness = fieldData.lineThickness;
-	barPosition = fieldData.barPosition;
-	timerPosition = fieldData.timerPosition;
-	showMidRollCountdown = fieldData.showMidRollCountdown;
-	testDuration = fieldData.testDuration;
+let outer = document.getElementById('mainContainer'),
+	maxWidth = outer.clientWidth,
+	maxHeight = outer.clientHeight;
 
-	connectws();
-});
+window.addEventListener("resize", resize);
 
-window.addEventListener('onEventReceived', function (obj) {
-	const listener = obj.detail.listener;
-	// Handling widget buttons
-	if (obj.detail.event) {
-		if (obj.detail.event.listener === 'widget-button') {
-			if (obj.detail.event.field === 'testButtonAdWidget') {
-				const data = { length: testDuration };
-				sbDoAction(ws, sbAdRun, data);
-				AdRun(data);
-			}
-			if (obj.detail.event.field === 'testButtonAdMidRoll') {
-				const data = { length: 5 };
-				sbDoAction(ws, sbAdMidRoll, data);
-				AdMidRoll(data);
-			}
-			return;
-		}
-	}
-});
+resize();
+function resize() {
+	const scale = window.innerWidth / maxWidth;
+	outer.style.transform = 'translate(-50%, 50%) scale(' + scale + ')';
+}
+
+
+
+/////////////////////////////////////////////////////////////////////
+// IF THE USER PUT IN THE HIDEALBUMART PARAMATER, THEN YOU SHOULD  //
+//   HIDE THE ALBUM ART, BECAUSE THAT'S WHAT IT'S SUPPOSED TO DO   //
+/////////////////////////////////////////////////////////////////////
+
+if (hideAlbumArt)
+{
+	document.getElementById("albumArtBox").style.display = "none";
+	document.getElementById("songInfoBox").style.width = "calc(100% - 20px)";
+}
+
 
 connectws();
