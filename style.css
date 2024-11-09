@@ -22,12 +22,6 @@
 	transform: translate(-50%, -50%);
 }
 
-#timerBar {
-	width: 0px;
-	background-color: #ffcc00;
-	position: absolute;
-}
-
 #hugeTittiesContainer {
 	font-family: 'Metropolis';
 	font-weight: bold;
@@ -40,7 +34,13 @@
 	display: table;
 }
 
-#label {
+#timerBar {
+	width: 0px;
+	background-color: #ffcc00;
+	position: absolute;
+}
+
+#adLabel {
 	font-size: 20px;
 	font-weight: bold;
 	max-width: fit-content;
