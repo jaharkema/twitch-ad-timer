@@ -1,6 +1,6 @@
-///////////////////////////
-// STREAMELEMENTS FIELDS //
-///////////////////////////
+////////////////
+// PARAMETERS //
+////////////////
 
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
@@ -9,8 +9,8 @@ let sbDebugMode = true;
 const sbServerAddress = urlParams.get("address") || "127.0.0.1";
 const sbServerPort = urlParams.get("port") || "8080";
 const lineThickness = urlParams.get("lineThickness") || 4;
-const barPosition = urlParams.get("barPosition") || "Bottom";			// None, Bottom, Top, Left, Right
-const timerPosition = urlParams.get("timerPosition") || "Top Left";		// None, Top Left, Top Right, Bottom Left, Bottom Right
+const barPosition = urlParams.get("barPosition") || "bottom";			// none, bottom, top, left, right
+const timerPosition = urlParams.get("timerPosition") || "topLeft";		// none, topLeft, topRight, bottomLeft, bottomRight
 const showMidRollCountdown = urlParams.get("timerPosition") || true;
 
 /////////////////
@@ -128,10 +128,10 @@ function TimerBarAnimation(adLength) {
 	let timerBar = document.getElementById("timerBar");
 	
 	switch (barPosition) {
-		case "None":
+		case "none":
 			timerBar.style.display = "none";
 			break;
-		case "Bottom":
+		case "bottom":
 			timerBar.style.height = lineThickness + "px";
 			timerBar.style.bottom = "0px";
 			timerBar.style.left = "0px";
@@ -143,7 +143,7 @@ function TimerBarAnimation(adLength) {
 				.to(timerBar, adLength, { width: "0px", ease: Linear.easeNone })
 			break;
 
-		case "Top":
+		case "top":
 			timerBar.style.height = lineThickness + "px";
 			timerBar.style.top = "0px";
 			timerBar.style.left = "0px";
@@ -155,7 +155,7 @@ function TimerBarAnimation(adLength) {
 				.to(timerBar, adLength, { width: "0px", ease: Linear.easeNone })
 			break;
 
-		case "Left":
+		case "left":
 			timerBar.style.width = lineThickness + "px";
 			timerBar.style.bottom = "0px";
 			timerBar.style.left = "0px";
@@ -167,7 +167,7 @@ function TimerBarAnimation(adLength) {
 				.to(timerBar, adLength, { height: "0px", ease: Linear.easeNone })
 			break;
 
-		case "Right":
+		case "right":
 			timerBar.style.width = lineThickness + "px";
 			timerBar.style.bottom = "0px";
 			timerBar.style.right = "0px";
@@ -186,22 +186,22 @@ function HugeTittiesAnimation(adLength) {
 	let hugeTittiesContainer = document.getElementById("hugeTittiesContainer");
 
 	switch (timerPosition) {
-		case "None":
+		case "none":
 			hugeTittiesContainer.style.display = "none";
 			break;
-		case "Top Left":
+		case "topLeft":
 			hugeTittiesContainer.style.top = "0px";
 			hugeTittiesContainer.style.left = "0px";
 			break;
-		case "Top Right":
+		case "topRight":
 			hugeTittiesContainer.style.top = "0px";
 			hugeTittiesContainer.style.right = "0px";
 			break;
-		case "Bottom Left":
+		case "bottomLeft":
 			hugeTittiesContainer.style.bottom = "0px";
 			hugeTittiesContainer.style.left = "0px";
 			break;
-		case "Bottom Right":
+		case "bottomRight":
 			hugeTittiesContainer.style.bottom = "0px";
 			hugeTittiesContainer.style.right = "0px";
 			break;
