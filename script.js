@@ -23,7 +23,7 @@ let singleAdLength = 30;
 
 
 ///////////////////////////////////
-// SRTEAMER.BOT WEBSOCKET SERVER //
+// STREAMER.BOT WEBSOCKET SERVER //
 ///////////////////////////////////
 
 // This is the main function that connects to the Streamer.bot websocket server
